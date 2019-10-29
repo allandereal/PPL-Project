@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Cinema</title>
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <style>
+        td, th {
+            padding: 5px 6px !important;
+        }
+    </style>
+    <script>
+        //query selectors
+        const $ = document.querySelector.bind(document);
+        const $$ = document.querySelectorAll.bind(document);
+
+        //cinema
+        const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
+        const columns = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'];
+
+        let movies = [];
+        let schedules = [];
+
+
+        //classes
+        class Movie{
+            constructor(title){
+                this.title = title;
+            }
+        }
+
+        class Schedule{
+            constructor(movie, date){
+                this.movie = movie;
+                this.date = date;
+            }
+        }
+
+        class Seat{
+            constructor(price,status){
+                this.price = price;
+                this.status = status;
+            }
+        }
+
+        class Ticket{
+            constructor(seat, status){
+                this.seat = seat;
+                this.status = status;
+            }
+        }
+
+        class Column{
+            constructor(seat){
+                this.seat = seat;
+            }
+        }
+
+        class Row{
+            constructor(seat){
+                this.seat = seat;
+            }
+        }
+
+        class Report{
+            constructor(movie, amount, people){
+                this.movie = movie;
+                this.amount = amount;
+                this.people = people;
+            }
+        }
+
+        class Booking{
+            constructor(date, schedule, seat){
+                this.date = date;
+                this.schedule = schedule;
+                this.seat = seat;
+            }
+        }
+
+        class VVipSeat extends Seat{
+
+        }
+        class VipSeat extends Seat{
+
+        }
+        class EconomySeat extends Seat{
+
+        }
+
+        class Management{
+            //
+        }
+
+        window.onload = function(){
+            let cinemaData = '';
+            let cinema = document.getElementById('cinema');
+
+            for (let i=0; i<=16; i++){
+                cinemaData += '<tr><th>'+(i === 0 ? '' : rows[i-1])+'</th>';
+                for (let j=0; j<20; j++){
+                    cinemaData += (i === 0 ? '<th>'+columns[j]+'</th>' : '<td>*</td>');
+                }
+                cinemaData += '</tr>';
+            }
+            cinema.innerHTML = cinemaData;
+
+            //movie schedule
+            //$('movieScheduleButton').addEventListener('click')
+            $('#movieScheduleForm').addEventListener('submit', function (e) {
+                console.log(e);
+            })
+        };
+
+    </script>
+</head>
+<body class="text-center">
+    <div class="cover-container d-flex w-100 h-100 p-3 mx-auto flex-column">
+        <header class="masthead mb-auto">
+            <div class="inner">
+                <h3 class="masthead-brand">Cinema</h3>
+                <nav class="nav nav-masthead justify-content-center">
+                    <a class="nav-link active" href="#" data-toggle="modal" data-target="#movieModal">Movie Schedule</a>
+                    <a class="nav-link" href="#">Seat Assignment</a>
+                    <a class="nav-link" href="#">Payments</a>
+                    <a class="nav-link" href="#">Reset Seating Plan</a>
+                    <a class="nav-link" href="#">Exit</a>
+                </nav>
+            </div>
+        </header>
+        <div class="container">
+            <table class="table table-bordered mt-2">
+                <thead id="cinema"></thead>
+            </table>
+        </div>
+
+        <footer class="mastfoot mt-auto">
+            <div class="inner">
+<!--                <p>Cover template for <a href="https://getbootstrap.com/">Bootstrap</a>, by <a href="https://twitter.com/mdo">@mdo</a>.</p>-->
+            </div>
+        </footer>
+    </div>
+
+    <!-- Modal -->
+    <div class="text-left modal fade" id="movieModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Movie Schedule</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="movieScheduleForm" name="movieScheduleForm">
+                        <div class="form-group">
+                            <label>Movie Title</label>
+                            <input class="form-control" type="text" name="movieTitle" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Schedule Date</label>
+                            <input class="form-control" type="datetime-local" name="movieDate" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button form="movieScheduleForm" id="movieScheduleButton" type="button" class="btn btn-primary">Save</button>
+<!--                    <button type="button" class="btn btn-primary">Save changes</button>-->
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="jquery.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+</body>
+</html>
