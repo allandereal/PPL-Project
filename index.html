@@ -13,6 +13,9 @@
         }
     </style>
     <script>
+        window.onbeforeunload = function () {
+            return 'This will reset all data. are you sure?'
+        };
         //query selectors
         const $ = document.querySelector.bind(document);
         const $$ = document.querySelectorAll.bind(document);
@@ -20,29 +23,58 @@
         //cinema
         const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
         const columns = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'];
+        const seats = [];
+        const seatCategories = {
+            "Twin":{
+                "price": 25000,
+                "rows": ['A','B']
+            },
+            "VIP": {
+                "price": 50000,
+                "rows": ['A','B','C','D','E','F']
+            },
+            "VVIP": {
+                "price": 100000,
+                "rows": ['G','H','I','J','K','L']
+            },
+            "Economy": {
+                "price": 20000,
+                "rows": ['M','N','O','P']
+            }
+        };
 
-        let movies = [];
-        let schedules = [];
+        let movieSchedules = [];
 
 
         //classes
-        class Movie{
-            constructor(title){
-                this.title = title;
-            }
-        }
-
-        class Schedule{
+        class MovieSchedule{
             constructor(movie, date){
                 this.movie = movie;
                 this.date = date;
+                this.seats = seats;
+            }
+
+            getAvailableSeats(category){
+                let availableSeats = '';
+                this.seats.forEach(function (seat) {
+                    if (seat.category === category && seat.status === '*'){
+                        availableSeats += '<li>'+seat.row+seat.column+'</li>';
+                    }
+                });
+                $('#availableSeats').innerHTML = availableSeats;
+            }
+            unpdateSeats(seat){
+                //
             }
         }
 
         class Seat{
-            constructor(price,status){
+            constructor(row, column, price, status, category){
+                this.row = row;
+                this.column = column;
                 this.price = price;
                 this.status = status;
+                this.category = category;
             }
         }
 
@@ -95,6 +127,32 @@
             //
         }
 
+        function showScreen(){
+            //
+        }
+
+
+
+        function getSeatCategory(row, column) {
+            if ((row === 'A' || row === 'B') && (column >= 5 && column <= 15)){
+                return 'Twin';
+            }else if (seatCategories.VVIP.rows.includes(row)){
+                return 'VVIP';
+            }else if (seatCategories.VIP.rows.includes(row)){
+                return 'VIP';
+            }else if (seatCategories.Economy.rows.includes(row)){
+                return 'Economy';
+            }else {
+                return 'None';
+            }
+        }
+
+        //to run when page loads
+        function createSeats(row, column){
+            let category = getSeatCategory(row, column);
+            seats.push(new Seat(row, column, seatCategories[category].price, '*', category));
+        }
+
         window.onload = function(){
             let cinemaData = '';
             let cinema = document.getElementById('cinema');
@@ -103,16 +161,51 @@
                 cinemaData += '<tr><th>'+(i === 0 ? '' : rows[i-1])+'</th>';
                 for (let j=0; j<20; j++){
                     cinemaData += (i === 0 ? '<th>'+columns[j]+'</th>' : '<td>*</td>');
+                    //create seat
+                    if (i<16){
+                        createSeats(rows[i], columns[j]);
+                    }
                 }
                 cinemaData += '</tr>';
             }
+            //console.log(seats);
             cinema.innerHTML = cinemaData;
 
             //movie schedule
-            //$('movieScheduleButton').addEventListener('click')
             $('#movieScheduleForm').addEventListener('submit', function (e) {
-                console.log(e);
-            })
+                e.preventDefault();
+                //console.log((new FormData(this)).entries());
+                let movieSchedule = new MovieSchedule($('[name="movieTitle"]').value, $('[name="movieDate"]').value);
+                let movieExists = false;
+                movieSchedules.forEach(function (schedule) {
+                    if (movieSchedule.date === schedule.date){
+                        movieExists = true;
+                        alert('This date is already taken!');
+                    }
+                });
+
+                if (!movieExists){
+                    //add to schedules
+                    movieSchedules[movieSchedules.length] = movieSchedule;
+                    //
+                    let movieOptions = '<option value="">Select Schedule</option>';
+                    movieSchedules.forEach(function (movie, key) {
+                        movieOptions += '<option value="'+key+'">'+movie.movie+' - '+movie.date+'</option>'
+                    });
+                    $('[name="movieSchedule"]').innerHTML = movieOptions;
+                    //console.log(movieSchedules);
+                }
+                //this.submit();
+                $('button.close').click();
+            });
+
+            //
+            $('[name="seatCategory"]').addEventListener('change', function () {
+                console.log(this.value);
+                let schedule = movieSchedules[$('[name="movieSchedule"]').value];
+                let seatsRequired = $('[name="noOfSeats"]').value;
+                schedule.getAvailableSeats(this.value);
+            });
         };
 
     </script>
@@ -124,7 +217,7 @@
                 <h3 class="masthead-brand">Cinema</h3>
                 <nav class="nav nav-masthead justify-content-center">
                     <a class="nav-link active" href="#" data-toggle="modal" data-target="#movieModal">Movie Schedule</a>
-                    <a class="nav-link" href="#">Seat Assignment</a>
+                    <a class="nav-link" href="#" data-toggle="modal" data-target="#bookingModal">Seat Assignment</a>
                     <a class="nav-link" href="#">Payments</a>
                     <a class="nav-link" href="#">Reset Seating Plan</a>
                     <a class="nav-link" href="#">Exit</a>
@@ -145,11 +238,11 @@
     </div>
 
     <!-- Modal -->
-    <div class="text-left modal fade" id="movieModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="text-left modal fade" id="movieModal" tabindex="-1" role="dialog" aria-labelledby="movieModalLabel" aria-hidden="true">
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="exampleModalLabel">Movie Schedule</h5>
+                    <h5 class="modal-title" id="movieModalLabel">Movie Schedule</h5>
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                     </button>
@@ -167,8 +260,52 @@
                     </form>
                 </div>
                 <div class="modal-footer">
-                    <button form="movieScheduleForm" id="movieScheduleButton" type="button" class="btn btn-primary">save</button>
+                    <button form="movieScheduleForm" id="movieScheduleButton" type="submit" class="btn btn-primary">save</button>
 <!--                    <button type="button" class="btn btn-primary">Save changes</button>-->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-left modal fade" id="bookingModal" tabindex="-1" role="dialog" aria-labelledby="bookingModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bookingModalLabel">Movie Schedule</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="bookingForm" name="movieScheduleForm">
+                        <div class="form-group">
+                            <label>Select Movie Schedule</label>
+                            <select class="form-control" name="movieSchedule">
+                                <option>No Movie Schedules Available</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Seats Required:</label>
+                            <input type="number" min="1" name="noOfSeats" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Seat Category</label>
+                            <select class="form-control" name="seatCategory">
+                                <option value="">Choose seat category</option>
+                                <option value="VIP">VIP</option>
+                                <option value="VVIP">VVIP</option>
+                                <option value="Twin">Twin Seats</option>
+                                <option value="Economy">Economy</option>
+                            </select>
+                        </div>
+                        <ul id="availableSeats">
+
+                        </ul>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button form="bookingForm" id="bookingButton" type="submit" class="btn btn-primary">book</button>
+                    <!--                    <button type="button" class="btn btn-primary">Save changes</button>-->
                 </div>
             </div>
         </div>
