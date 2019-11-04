@@ -23,7 +23,8 @@
         //cinema
         const rows = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P'];
         const columns = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20'];
-        const seats = [];
+        const seats = {}; //{'A':[1,2,...],...}
+        let movieSchedules = [];
         const seatCategories = {
             "Twin":{
                 "price": 25000,
@@ -43,8 +44,6 @@
             }
         };
 
-        let movieSchedules = [];
-
 
         //classes
         class MovieSchedule{
@@ -54,13 +53,39 @@
                 this.seats = seats;
             }
 
-            getAvailableSeats(category){
+            getAvailableSeats(category, seatsRequired){
                 let availableSeats = '';
-                this.seats.forEach(function (seat) {
-                    if (seat.category === category && seat.status === '*'){
-                        availableSeats += '<li>'+seat.row+seat.column+'</li>';
+                let freeRowsCount = [];
+
+                for (let key in this.seats){
+                    this.seats[key].forEach(function (seat) {
+                        if (seat.category === category && seat.status === '*'){
+                            if (typeof freeRowsCount[seat.row] === 'undefined'){
+                                freeRowsCount[seat.row] = [seat.column];
+                            }else{
+                                freeRowsCount[seat.row].push(seat.column);
+                            }
+                        }
+                    });
+                }
+
+                //console.log(freeRowsCount);
+                for (let key in freeRowsCount){
+                    if (seatsRequired <= freeRowsCount[key].length){
+                        availableSeats += '<li>'+key+freeRowsCount[key][0]+'</li>';
                     }
-                });
+                }
+                if (availableSeats === ''){
+                    availableSeats = '<p class="alert-danger p-5">No Available seats Please Try Again!</p>';
+                }
+                // freeRowsCount.forEach(function (rowCount) {
+                //     console.log(rowCount+'1');
+                //
+                //     if (seatsRequired <= rowCount.length){
+                //         availableSeats += '<li>'+rowCount[0]+'</li>';
+                //     }
+                // });
+
                 $('#availableSeats').innerHTML = availableSeats;
             }
             unpdateSeats(seat){
@@ -113,26 +138,6 @@
             }
         }
 
-        class VVipSeat extends Seat{
-
-        }
-        class VipSeat extends Seat{
-
-        }
-        class EconomySeat extends Seat{
-
-        }
-
-        class Management{
-            //
-        }
-
-        function showScreen(){
-            //
-        }
-
-
-
         function getSeatCategory(row, column) {
             if ((row === 'A' || row === 'B') && (column >= 5 && column <= 15)){
                 return 'Twin';
@@ -150,28 +155,68 @@
         //to run when page loads
         function createSeats(row, column){
             let category = getSeatCategory(row, column);
-            seats.push(new Seat(row, column, seatCategories[category].price, '*', category));
+            if (typeof seats[row] === 'undefined'){
+                seats[row] = [new Seat(row, column, seatCategories[category].price, '*', category)];
+            }else{
+                seats[row].push(new Seat(row, column, seatCategories[category].price, '*', category));
+            }
         }
 
         window.onload = function(){
-            let cinemaData = '';
-            let cinema = document.getElementById('cinema');
+            $('#resetSeatingPlan').addEventListener('click', function () {
+                for (let key in seats){
+                    seats[key].forEach(function (seat) {
+                        seat.status = '*';
+                    });
+                }
+                //console.log(seats);
+                printScreen(seats);
+            });
 
+            $('[name="noOfSeats"]').addEventListener('change', function () {
+                $('[name="seatCategory"]').value = '';
+            });
+            $('[name="seatChosen"]').addEventListener('change', function () {
+                $('[name="seatAction"]').value = '';
+            });
+
+            let cinemaData = '';
             for (let i=0; i<=16; i++){
-                cinemaData += '<tr><th>'+(i === 0 ? '' : rows[i-1])+'</th>';
                 for (let j=0; j<20; j++){
-                    cinemaData += (i === 0 ? '<th>'+columns[j]+'</th>' : '<td>*</td>');
-                    //create seat
+                    if (i===0) cinemaData += '<th>'+(j+1)+'</th>';
                     if (i<16){
                         createSeats(rows[i], columns[j]);
                     }
                 }
-                cinemaData += '</tr>';
             }
-            //console.log(seats);
-            cinema.innerHTML = cinemaData;
+            cinemaData = '<tr><th></th>'+cinemaData+'</tr>';
 
-            //movie schedule
+            let cinema = $('#cinema');
+
+            function printScreen(seats){
+                let seatsAvailable = 0;
+                let totalSales = 0;
+                let screenData = cinemaData;
+                for (let key in seats){
+                    screenData += '<tr><th>'+key+'</th>';
+                    seats[key].forEach(function (seat) {
+                        if (seat.status === '*'){
+                            seatsAvailable += 1;
+                        }else if(seat.status === '#'){
+                            totalSales += seat.price;
+                        }
+                        screenData += '<td>'+seat.status+'</td>';
+                    });
+                    screenData += '</tr>';
+                }
+                $('#seatsAvailable').innerHTML = '<span>Number of seats available: </span><b>'+seatsAvailable+'</b>';
+                $('#totalSales').innerHTML = '<span>Total sales: shs. </span><b>'+totalSales+'</b>';
+                cinema.innerHTML = screenData;
+            }
+
+            printScreen(seats);
+
+            //make movie schedule
             $('#movieScheduleForm').addEventListener('submit', function (e) {
                 e.preventDefault();
                 //console.log((new FormData(this)).entries());
@@ -201,10 +246,54 @@
 
             //
             $('[name="seatCategory"]').addEventListener('change', function () {
-                console.log(this.value);
+                //console.log(this.value);
                 let schedule = movieSchedules[$('[name="movieSchedule"]').value];
                 let seatsRequired = $('[name="noOfSeats"]').value;
-                schedule.getAvailableSeats(this.value);
+                schedule.getAvailableSeats(this.value, seatsRequired);
+            });
+
+            //
+            $('[name="seatAction"]').addEventListener('change', function () {
+                let action = this.value;
+                let seatChosen = $('[name="seatChosen"]').value;
+                let seatRowColumn = seatChosen.split('');
+                let seatsCount = $('[name="noOfSeats"]').value;
+                let schedule = movieSchedules[$('[name="movieSchedule"]').value];
+                let seatExists = false;
+                for (let key in schedule.seats){
+                    //if (key === '')
+                    schedule.seats[key].forEach(function (seat, currentKey) {
+                        //console.log((seat.column+seat.row) +'---'+ seatChosen);
+                        if ((seat.row+seat.column) === seatChosen){
+                            seatExists = true;
+                            //update all matching seats
+                            let start = parseInt(seatRowColumn[1]);
+                            let end = parseInt(seatsCount)-1 + start;
+                            //console.log(currentKey);
+                            let firstKey = currentKey;
+                            while (start <= end){
+                                let currentSeat = schedule.seats[key][firstKey];
+                                //console.log(currentSeat.category + seat.category);
+                                if (currentSeat.status === '*' && currentSeat.category === seat.category){
+                                    currentSeat.status = '#';
+                                    start++;
+                                }
+                                firstKey++;
+                            }
+                            for(let i = start; i <= end;i++){
+                                seat.status = action;
+                            }
+                        }
+                        //
+                    });
+                }
+
+                if (!seatExists){
+                    alert('seat does not exist');
+                }
+                //console.log(schedule.seats);
+                printScreen(schedule.seats);
+
             });
         };
 
@@ -219,7 +308,7 @@
                     <a class="nav-link active" href="#" data-toggle="modal" data-target="#movieModal">Movie Schedule</a>
                     <a class="nav-link" href="#" data-toggle="modal" data-target="#bookingModal">Seat Assignment</a>
                     <a class="nav-link" href="#">Payments</a>
-                    <a class="nav-link" href="#">Reset Seating Plan</a>
+                    <a class="nav-link" id="resetSeatingPlan" href="#">Reset Seating Plan</a>
                     <a class="nav-link" href="#">Exit</a>
                 </nav>
             </div>
@@ -228,6 +317,10 @@
             <table class="table table-bordered mt-2">
                 <thead id="cinema"></thead>
             </table>
+            <div class="row">
+                <div id="seatsAvailable" class="col-md-6"></div>
+                <div id="totalSales" class="col-md-6"></div>
+            </div>
         </div>
 
         <footer class="mastfoot mt-auto">
@@ -298,14 +391,22 @@
                                 <option value="Economy">Economy</option>
                             </select>
                         </div>
-                        <ul id="availableSeats">
-
-                        </ul>
+                        <span>Available Seats:</span>
+                        <ul id="availableSeats"></ul>
+                        <div class="form-group">
+                            <label>Choose Seat:</label>
+                            <input type="text" name="seatChosen" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Action:</label>
+                            <select class="form-control" name="seatAction">
+                                <option value="">Choose action</option>
+                                <option value="*">Mark as Available (*)</option>
+                                <option value="#">Mark as Paid (#)</option>
+                                <option value="o">Mark as Booked (o)</option>
+                            </select>
+                        </div>
                     </form>
-                </div>
-                <div class="modal-footer">
-                    <button form="bookingForm" id="bookingButton" type="submit" class="btn btn-primary">book</button>
-                    <!--                    <button type="button" class="btn btn-primary">Save changes</button>-->
                 </div>
             </div>
         </div>
